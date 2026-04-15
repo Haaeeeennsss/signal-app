@@ -18,8 +18,8 @@ export default function Dashboard() {
   const [showCheckIn, setShowCheckIn]   = useState(false)
   const [wipedMessage, setWipedMessage] = useState(false)
 
-  // Today's date in YYYY-MM-DD (used as the check-in key)
-  const today = new Date().toISOString().split('T')[0]
+  // Today's date in YYYY-MM-DD (local timezone, not UTC — avoids midnight edge cases)
+  const today = new Date().toLocaleDateString('en-CA')
 
   const myMember  = members.find(m => m.user_id === user?.id)
   const myCheckIn = todayCheckIns.find(c => c.user_id === user?.id)
@@ -130,7 +130,7 @@ export default function Dashboard() {
     let newStreak         = squad.streak
     let newLastStreakDate  = squad.last_streak_date
     let wiped             = false
-    const yesterday       = new Date(Date.now() - 86_400_000).toISOString().split('T')[0]
+    const yesterday       = new Date(Date.now() - 86_400_000).toLocaleDateString('en-CA')
 
     if (newHp <= 0) {
       // Squad wiped! Reset HP to 50 as a "respawn" and clear the streak
