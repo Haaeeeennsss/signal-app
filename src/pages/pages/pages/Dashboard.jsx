@@ -65,4 +65,58 @@ export default function Dashboard() {
     <div className="min-h-screen bg-black text-white p-4 max-w-md mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold">{squad.name}</h1>
-        <button onClick={handleSignOut} className="text-gray-400 text-sm hover:t
+        <button onClick={handleSignOut} className="text-gray-400 text-sm hover:text-white">Sign out</button>
+      </div>
+
+      <div className="text-center mb-6">
+        <div className="text-5xl font-bold text-green-400">
+          {squad.streak > 0 ? `🔥 Day ${squad.streak}` : 'Day 0'}
+        </div>
+        <p className="text-gray-400 mt-1">squad streak</p>
+      </div>
+
+      <HPBar hp={squad.hp} checkedIn={checkedInCount} total={totalMembers} />
+
+      <div className="mt-6">
+        <h3 className="text-gray-400 text-sm mb-3">Squad members</h3>
+        {members.map(member => (
+          <MemberStatus
+            key={member.id}
+            member={member}
+            checkin={checkins.find(c => c.user_id === member.user_id)}
+            isCurrentUser={member.user_id === currentUser?.id}
+          />
+        ))}
+      </div>
+
+      <div className="mt-6 space-y-3">
+        {!myCheckin ? (
+          <button onClick={() => setShowCheckIn(true)}
+            className="w-full bg-green-500 text-black font-bold py-4 rounded-xl text-lg hover:bg-green-400">
+            Check in today
+          </button>
+        ) : (
+          <div className={`w-full py-4 rounded-xl text-center font-bold text-lg ${myCheckin.status === 'hit' ? 'bg-green-900 text-green-400' : 'bg-red-900 text-red-400'}`}>
+            {myCheckin.status === 'hit' ? 'You hit your goal today' : 'You missed today'}
+          </div>
+        )}
+        <button onClick={() => setShowCard(true)}
+          className="w-full bg-gray-800 text-white py-3 rounded-xl hover:bg-gray-700">
+          Share squad card
+        </button>
+      </div>
+
+      {showCheckIn && (
+        <CheckInModal
+          squad={squad}
+          currentUser={currentUser}
+          members={members}
+          checkins={checkins}
+          today={today}
+          onClose={() => { setShowCheckIn(false); loadData() }}
+        />
+      )}
+      {showCard && <SquadCard squad={squad} members={members} onClose={() => setShowCard(false)} />}
+    </div>
+  )
+}
