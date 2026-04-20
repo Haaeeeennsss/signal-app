@@ -1,9 +1,10 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext'
-import Auth       from './pages/Auth'
-import Setup      from './pages/Setup'
-import JoinSquad  from './pages/JoinSquad'
-import Dashboard  from './pages/Dashboard'
+import Auth        from './pages/Auth'
+import Setup       from './pages/Setup'
+import JoinSquad   from './pages/JoinSquad'
+import Dashboard   from './pages/Dashboard'
+import Onboarding  from './pages/Onboarding'
 
 function LoadingScreen() {
   return (
@@ -36,7 +37,7 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/"            element={<Navigate to="/dashboard" replace />} />
+      <Route path="/"            element={<PublicRoute><Onboarding /></PublicRoute>} />
       <Route path="/auth"        element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/setup"       element={<PrivateRoute><Setup /></PrivateRoute>} />
       <Route path="/join/:code"  element={<PrivateRoute><JoinSquad /></PrivateRoute>} />
