@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [squad, setSquad]               = useState(null)
   const [members, setMembers]           = useState([])
   const [todayCheckIns, setTodayCheckIns] = useState([])
+  const [todayCallouts, setTodayCallouts] = useState([])
   const [loading, setLoading]           = useState(true)
   const [showCheckIn, setShowCheckIn]   = useState(false)
   const [wipedMessage, setWipedMessage] = useState(false)
@@ -61,6 +62,15 @@ export default function Dashboard() {
       .eq('check_in_date', today)
 
     setTodayCheckIns(checkIns || [])
+
+    // Today's callouts for this squad
+    const { data: callouts } = await supabase
+      .from('callouts')
+      .select('*')
+      .eq('squad_id', memberRow.squad_id)
+      .eq('check_in_date', today)
+
+    setTodayCallouts(callouts || [])
     setLoading(false)
   }, [user, navigate, today])
 
@@ -90,6 +100,20 @@ export default function Dashboard() {
       }, (payload) => {
         if (payload.new.check_in_date === today) {
           setTodayCheckIns(prev => {
+            if (prev.some(c => c.id === payload.new.id)) return prev
+            return [...prev, payload.new]
+          })
+        }
+      })
+      // When someone issues a callout
+      .on('postgres_changes', {
+        event:  'INSERT',
+        schema: 'public',
+        table:  'callouts',
+        filter: `squad_id=eq.${squad.id}`,
+      }, (payload) => {
+        if (payload.new.check_in_date === today) {
+          setTodayCallouts(prev => {
             if (prev.some(c => c.id === payload.new.id)) return prev
             return [...prev, payload.new]
           })
@@ -164,6 +188,31 @@ export default function Dashboard() {
       setWipedMessage(true)
       setTimeout(() => setWipedMessage(false), 6000)
     }
+  }
+
+  async function handleCallOut(targetUserId) {
+    if (!squad || !user) return
+
+    const { error } = await supabase
+      .from('callouts')
+      .insert({
+        squad_id:       squad.id,
+        caller_id:      user.id,
+        target_user_id: targetUserId,
+        check_in_date:  today,
+      })
+
+    if (error) {
+      console.error('Callout failed:', error.message)
+      return
+    }
+
+    // Calling someone out costs the squad -10 HP regardless of guilt
+    const newHp = Math.max(0, squad.hp - 10)
+    await supabase
+      .from('squads')
+      .update({ hp: newHp })
+      .eq('id', squad.id)
   }
 
   async function handleSignOut() {
@@ -292,15 +341,25 @@ export default function Dashboard() {
             Squad Status — Today
           </h2>
           <div className="bg-[#111118] border border-[#1f1f2e] rounded-2xl overflow-hidden">
-            {members.map((member, i) => (
-              <MemberStatus
-                key={member.id}
-                member={member}
-                checkIn={todayCheckIns.find(c => c.user_id === member.user_id)}
-                isLast={i === members.length - 1}
-                isMe={member.user_id === user?.id}
-              />
-            ))}
+            {members.map((member, i) => {
+              const checkIn       = todayCheckIns.find(c => c.user_id === member.user_id)
+              const isMe          = member.user_id === user?.id
+              const calledOut     = todayCallouts.some(c => c.target_user_id === member.user_id)
+              const iAlreadyCalled = todayCallouts.some(c => c.caller_id === user?.id)
+              const canCallOut    = !isMe && checkIn?.status === 'hit' && !calledOut && !iAlreadyCalled
+              return (
+                <MemberStatus
+                  key={member.id}
+                  member={member}
+                  checkIn={checkIn}
+                  isLast={i === members.length - 1}
+                  isMe={isMe}
+                  calledOut={calledOut}
+                  canCallOut={canCallOut}
+                  onCallOut={handleCallOut}
+                />
+              )
+            })}
           </div>
         </div>
 

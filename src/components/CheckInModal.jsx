@@ -56,9 +56,13 @@ export default function CheckInModal({ goalMinutes, onCheckIn, onClose }) {
           Cancel
         </button>
 
-        <p className="text-gray-700 text-xs text-center mt-2">
-          Be honest. Your squad is counting on you.
-        </p>
+        <div className="mt-3 bg-yellow-500/5 border border-yellow-500/20 rounded-xl px-4 py-3">
+          <p className="text-yellow-600 text-xs text-center leading-relaxed">
+            ⚠️ Teammates can flag your check-in if they think you're lying.
+            Getting called out costs the squad <strong>−10 HP</strong>.
+            Not worth it.
+          </p>
+        </div>
       </div>
     </div>
   )
