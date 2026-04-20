@@ -2,10 +2,12 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
-import HPBar        from '../components/HPBar'
-import MemberStatus from '../components/MemberStatus'
-import SquadCard    from '../components/SquadCard'
-import CheckInModal from '../components/CheckInModal'
+import HPBar             from '../components/HPBar'
+import MemberStatus      from '../components/MemberStatus'
+import SquadCard         from '../components/SquadCard'
+import CheckInModal      from '../components/CheckInModal'
+import AchievementBadges from '../components/AchievementBadges'
+import ShareModal        from '../components/ShareModal'
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -15,8 +17,11 @@ export default function Dashboard() {
   const [members, setMembers]           = useState([])
   const [todayCheckIns, setTodayCheckIns] = useState([])
   const [todayCallouts, setTodayCallouts] = useState([])
+  const [weeklyCheckIns, setWeeklyCheckIns] = useState([])
+  const [myHitCount, setMyHitCount]     = useState(0)
   const [loading, setLoading]           = useState(true)
   const [showCheckIn, setShowCheckIn]   = useState(false)
+  const [showShare, setShowShare]       = useState(false)
   const [wipedMessage, setWipedMessage] = useState(false)
 
   // Today's date in YYYY-MM-DD (local timezone, not UTC — avoids midnight edge cases)
@@ -71,6 +76,25 @@ export default function Dashboard() {
       .eq('check_in_date', today)
 
     setTodayCallouts(callouts || [])
+
+    // This week's check-ins (for share card)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86_400_000).toLocaleDateString('en-CA')
+    const { data: weekData } = await supabase
+      .from('check_ins')
+      .select('status')
+      .eq('squad_id', memberRow.squad_id)
+      .gte('check_in_date', sevenDaysAgo)
+
+    setWeeklyCheckIns(weekData || [])
+
+    // My all-time hit count (for personal achievements)
+    const { count: hitCount } = await supabase
+      .from('check_ins')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('status', 'hit')
+
+    setMyHitCount(hitCount || 0)
     setLoading(false)
   }, [user, navigate, today])
 
@@ -304,12 +328,20 @@ export default function Dashboard() {
             </span>
           </div>
           <HPBar hp={squad.hp} />
-          <div className="mt-4 flex items-center gap-2">
-            <span className="text-lg">🔥</span>
-            <span className="font-bold text-white tabular-nums">{squad.streak}</span>
-            <span className="text-gray-500 text-sm">
-              day{squad.streak !== 1 ? 's' : ''} streak
-            </span>
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🔥</span>
+              <span className="font-bold text-white tabular-nums">{squad.streak}</span>
+              <span className="text-gray-500 text-sm">
+                day{squad.streak !== 1 ? 's' : ''} streak
+              </span>
+            </div>
+            <button
+              onClick={() => setShowShare(true)}
+              className="text-xs px-3 py-1.5 rounded-lg bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 hover:border-indigo-500/40 text-indigo-400 font-semibold transition-all"
+            >
+              📤 Share Week
+            </button>
           </div>
         </div>
 
@@ -363,6 +395,14 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Achievements */}
+        <AchievementBadges
+          squad={squad}
+          todayCheckIns={todayCheckIns}
+          members={members}
+          myHitCount={myHitCount}
+        />
+
         {/* Invite / shareable squad card */}
         <SquadCard
           squad={squad}
@@ -373,6 +413,18 @@ export default function Dashboard() {
 
         <div className="h-8" />
       </div>
+
+      {/* Share modal */}
+      {showShare && (
+        <ShareModal
+          squad={squad}
+          members={members}
+          weekHits={weeklyCheckIns.filter(c => c.status === 'hit').length}
+          weekPossible={members.length * 7}
+          inviteUrl={inviteUrl}
+          onClose={() => setShowShare(false)}
+        />
+      )}
 
       {/* Check-in modal overlay */}
       {showCheckIn && (
