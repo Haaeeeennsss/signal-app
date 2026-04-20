@@ -4,6 +4,7 @@ import Auth        from './pages/Auth'
 import Setup       from './pages/Setup'
 import JoinSquad   from './pages/JoinSquad'
 import Dashboard   from './pages/Dashboard'
+import Landing     from './pages/Landing'
 import Onboarding  from './pages/Onboarding'
 
 function LoadingScreen() {
@@ -37,7 +38,8 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/"            element={<PublicRoute><Onboarding /></PublicRoute>} />
+      <Route path="/"            element={<PublicRoute><Landing /></PublicRoute>} />
+      <Route path="/quiz"        element={<PublicRoute><Onboarding /></PublicRoute>} />
       <Route path="/auth"        element={<PublicRoute><Auth /></PublicRoute>} />
       <Route path="/setup"       element={<PrivateRoute><Setup /></PrivateRoute>} />
       <Route path="/join/:code"  element={<PrivateRoute><JoinSquad /></PrivateRoute>} />
